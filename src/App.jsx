@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   BadgeCheck,
@@ -189,6 +189,13 @@ function FigureCard({ title, caption, sourcePath, variant }) {
 }
 
 function ChartPlaceholder({ variant, title }) {
+  const heatmapColors = [
+    ["rgba(34, 211, 238, 0.88)", "rgba(52, 211, 153, 0.48)"],
+    ["rgba(52, 211, 153, 0.82)", "rgba(168, 85, 247, 0.42)"],
+    ["rgba(168, 85, 247, 0.78)", "rgba(34, 211, 238, 0.38)"],
+    ["rgba(15, 23, 42, 0.92)", "rgba(34, 211, 238, 0.28)"],
+  ];
+
   if (variant === "bars") {
     return (
       <div className="chart-placeholder bar-visual" role="img" aria-label={`${title} placeholder`}>
@@ -205,17 +212,75 @@ function ChartPlaceholder({ variant, title }) {
 
   return (
     <div className="chart-placeholder heatmap-visual" role="img" aria-label={`${title} placeholder`}>
-      {Array.from({ length: 36 }).map((_, index) => (
-        <span key={index} style={{ "--i": index }} />
-      ))}
+      {Array.from({ length: 36 }).map((_, index) => {
+        const [start, end] = heatmapColors[index % heatmapColors.length];
+        const opacity = 0.42 + ((index * 7) % 10) / 18;
+
+        return (
+          <span
+            key={index}
+            style={{
+              background: `linear-gradient(135deg, ${start}, ${end})`,
+              opacity,
+            }}
+          />
+        );
+      })}
       <div className="chart-label">Correlation heatmap</div>
     </div>
   );
 }
 
+function useParallaxBackground() {
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (mediaQuery.matches) {
+      return undefined;
+    }
+
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const scrollY = window.scrollY || 0;
+      document.documentElement.style.setProperty("--parallax-slow", `${scrollY * -0.04}px`);
+      document.documentElement.style.setProperty("--parallax-mid", `${scrollY * -0.075}px`);
+      document.documentElement.style.setProperty("--parallax-fast", `${scrollY * -0.11}px`);
+    };
+
+    const requestUpdate = () => {
+      if (!frame) {
+        frame = window.requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, []);
+}
+
 function App() {
+  useParallaxBackground();
+
   return (
-    <div className="site-shell min-h-screen">
+    <>
+      <div className="parallax-bg" aria-hidden="true">
+        <span className="parallax-slab slab-one" />
+        <span className="parallax-slab slab-two" />
+        <span className="parallax-slab slab-three" />
+      </div>
+
+      <div className="site-shell min-h-screen">
       <header className="site-nav">
         <a className="brand" href="#top" aria-label="Saif Sallam home">
           <span className="brand-mark">SS</span>
@@ -265,7 +330,7 @@ function App() {
               <ButtonLink href="#projects" icon={Rocket} variant="secondary">
                 View Projects
               </ButtonLink>
-              <ButtonLink href={links.email} icon={Mail} variant="ghost">
+              <ButtonLink href="#contact" icon={Mail} variant="ghost">
                 Contact Me
               </ButtonLink>
             </div>
@@ -610,7 +675,8 @@ search = RandomizedSearchCV(
         <span>Saif Eldin Tamer Sallam</span>
         <span>AI Engineer | Writing Code That Thinks</span>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
 
